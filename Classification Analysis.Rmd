@@ -177,13 +177,22 @@ set.seed(20)
 km <- kmeans(trafc, 4) # Taking into consideration the recommendation by by Nbclust, we try 4 clusters.
 
 km
-
+```
+```{r}
 clusplot(trafc,  # data frame
          km$cluster,  # cluster data
          color = TRUE,  # color
 #          shade = TRUE,  # Lines in clusters
          lines = 3, # Lines connecting centroids
          labels = 2)    # Labels clusters and cases
+
+
+
+clusplot(trafc,  # data frame
+         km$cluster,  # cluster data
+         color = TRUE,  # color
+#          shade = TRUE,  # Lines in clusters
+         lines = 3) # Lines connecting centroids, without labels
 
 ```
 
