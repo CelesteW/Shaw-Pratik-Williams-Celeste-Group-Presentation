@@ -139,6 +139,12 @@ barplot(table(nc$Best.n[1,]),
 xlab="Numer of Clusters", ylab="Number of Criteria",
 main="Number of Clusters Chosen by 26 Criteria")
 
+```
+```{r}
+c <- hclust(d, method = "ward")
+
+plot(c)
+
 rect.hclust(c, k = 2, border = "red") # Further integrates the similar observations into k clusters. As the numbebr equaled to k increases, the clusters increases and vice versa.
 
 ```
