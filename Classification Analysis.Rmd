@@ -1,0 +1,297 @@
+---
+title: "Classification Analysis (Cluster Analysis and Decision Trees)"
+author: "Pratik Shaw and Celeste Williams"
+date: "5/2/2019"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = TRUE,
+	message = TRUE,
+	comment = "##",
+	prompt = FALSE,
+	tidy = TRUE,
+	tidy.opts = list(blank = FALSE, width.cutoff = 75),
+	fig.path = "img/",
+	fig.align = "center"
+)
+```
+
+
+
+
+
+# Cluster Analysis 
+
+## Introduction
+
+a) Clustering is the unsupervised classification of patterns (observations, data items, or feature vectors) into groups (clusters).
+b) It is the task of grouping together the set of objects in such a way that objects in the same cluster are more similar to each other than to objects in other clusters.
+c) It is primarily used for exploratory data analysis, as well as, fields such as machine learning, pattern recognition, image analysis, information retrieval, bioinformatics, data compression, and computer graphics.
+d) Before choosing the type of clustering, it is necessary to select the variable that is required for identifying and understanding the differences among groups of observations within the data.
+  - Example: In behavioral science or health research, you can include psychological symptoms; physical symptoms;      number, duration, and timing of episodes, etc. Similarly in marketing, you can use it to look at product           internet search frequency, product or brand awareness according as per various groups of target customers,         state-wise viewership of various shows, etc.
+
+## Primarily, there are 2 types of clustering:
+
+### Hierarchical Agglomerative Clustering
+
+a) Each observation here starts as its own cluster
+b) Clusters are then combined, two at time, until all the clusters are merged into a single cluster.
+c) The most popular hierarchical clustering algorithms are single linkage, complete linkage, average linkage, centroid, and Ward’s method.
+
+### Partitioning Clustering
+
+a) In the partitioning approach, you specify K: the number of clusters sought.
+b) Observations are then randomly divided into K groups and reshuffled to form cohesive clusters.
+c) The most popular partitioning algorithms are k-means and partitioning around medoids (PAMS). 
+
+- Install and load thess packages in **R**: [{cluster}, {factoextra}, {NbClust}](url)
+
+```{r, include=FALSE}
+library(cluster)
+library(factoextra)
+library(NbClust)
+```
+Then, import the below dataset that shows Google search of certain items by various celebrities.
+
+## Hierarchical Agglomerative Clustering
+
+```{r}
+trafc <- read.csv("https://raw.githubusercontent.com/pratzticism/Cluster-Analysis/master/StateClusterData.csv")
+
+str(trafc)
+
+head(trafc) # look at the variables in the data - they're all Google searches of various items that Google's client is interested in for some analysis. They are represented numerically as % increase or decrease in search of particular item.
+
+```
+
+Sorting the data: Get rid of the celebrities names as variable and turn it into row or R would use it as a part of cluster analysis.
+```{r}
+rownames(trafc) <- trafc[,1]
+
+trafc[,1] <- NULL
+
+head(trafc)
+```
+
+By now you would have started wondering how does the algorithm determine the placement of similar observations in various clusters? This decision is based on determination of distances between the observations. Clustering methods classify data samples into groups of similar objects. This process requires some methods for measuring the distance or the (dis)similarity between the observations.
+
+The most popular measure of the distance between two observations is the Euclidean distance, other measures of distance are Manhattan, Canberra, asymmetric binary, maximum, and Minkowski.
+
+Euclidean distance is calculated by getting the square root of the sum of squared distances.  
+```{r}
+d <- dist(trafc)
+
+d #this would show the distance matrix. Anything that equals 0 is exactly the similar pattern / search preference and as it increases, it is less similar.
+```
+
+Gives a visualization of distance between various celebrities' search preference
+```{r}
+fviz_dist(d) 
+```
+
+First we'll clusterize the data into a hierarchichal cluster and look at how different algorithms give distinct outputs.
+
+Hierarchical clustering can be accomplished with the hclust() function. The format is hclust(d, method=), where d is a distance matrix produced by the dist() function and methods include "single", "complete", "average", "centroid", and "ward".
+
+a) Single linkage - Shortest distance between a point in one cluster and a point in the other cluster.
+b) Complete linkage - Longest distance between a point in one cluster and a point in the other cluster.
+c) Average linkage - Average distance between each point in one cluster and each point in the other
+cluster.
+d) Centroid - Distance between the centroids (vector of variable means) of the two clusters.
+For a single observation, the centroid is the variable’s values.
+e) Ward - Ward’s method tends to join clusters with small numbers of observations and tends
+to produce clusters with roughly equal numbers of observations. It can also be sensitive
+to outliers.
+
+```{r}
+c <- hclust(d, method = "single") 
+
+c #note that when not specified to R, it by default measures the distance between the observations as per Euclidean distance
+
+plot(c) # Finally, the results are plotted as a dendrogram. The dendrogram displays how items are combined into clusters and is read from the bottom up. Each observation starts as its own cluster. Then the two observations that are closest are combined. 
+
+c <- hclust(d, method = "complete")
+
+plot(c)
+
+c <- hclust(d, method = "average")
+
+plot(c)
+
+c <- hclust(d, method = "centroid")
+
+plot(c)
+
+c <- hclust(d, method = "ward")
+
+plot(c)
+
+nc <- NbClust(trafc, distance="euclidean",
+min.nc=2, max.nc=12, method="average")
+table(nc$Best.n[1,])
+
+barplot(table(nc$Best.n[1,]),
+xlab="Numer of Clusters", ylab="Number of Criteria",
+main="Number of Clusters Chosen by 26 Criteria")
+
+rect.hclust(c, k = 2, border = "red") # Further integrates the similar observations into k clusters. As the numbebr equaled to k increases, the clusters increases and vice versa.
+
+```
+
+## Partitioning cluster analysis
+
+Hierarchical clustering is difficult to apply in large samples, where there may be hundreds or even thousands
+of observations. Partitioning methods can work well in these situations.
+
+We will particularly look at K-means clustering.
+
+1) Select K centroids either randomly or based on NbClust function
+2) Assign the K groups to determine the clusters
+
+R uses an efficient algorithm by Hartigan and Wong (1979) that partitions the observations into k groups such that the sum of squares of the observations to their assigned cluster centers is a minimum.
+
+The format of the k-means function in R is kmeans(x, centers), where x is a numeric dataset (matrix or data frame) and centers is the number of clusters to extract. The function returns the cluster memberships, centroids, sums of squares (within, between, total), and cluster sizes.
+
+```{r}
+
+nc <- NbClust(trafc, min.nc=2, max.nc=12, method="kmeans")
+table(nc$Best.n[1,])
+
+barplot(table(nc$Best.n[1,]),
+xlab="Number of Clusters", ylab="Number of Criteria",
+main="Number of Clusters Chosen by 26 Criteria")
+
+set.seed(20)
+
+km <- kmeans(trafc, 4) # Taking into consideration the recommendation by by Nbclust, we try 4 clusters.
+
+km
+
+clusplot(trafc,  # data frame
+         km$cluster,  # cluster data
+         color = TRUE,  # color
+#          shade = TRUE,  # Lines in clusters
+         lines = 3, # Lines connecting centroids
+         labels = 2)    # Labels clusters and cases
+
+```
+
+Cluster analysis is a methodology for discovering cohesive subgroups of observations in a dataset. If the variables in the analysis vary in range, the variables with the largest range will have the greatest impact on the results. This is often undesirable, and analysts scale the data before continuing. The most popular approach is to standardize each variable to a mean of 0 and a standard deviation of 1. Use the scale() function to standardize the variables to a mean of 0 and a standard deviation of 1.
+
+Next, we’ll consider situations where the groups have already been defined and your goal is to find an accurate method of classifying observations into them.
+
+
+# Decision Trees and Random Forests
+
+- Install thess packages in ***R***: [{curl}, {rpart},{rpart.plot}, {randomForest}]
+
+##Introduction
+Decision trees are an easily interpretable tool used for classification and regression analysis. Decision trees are used to predict an outcome or event based on the outcome of various predictor variables. Examples include predicting if a tumor is benign or malignant or predicting species of a plant from various characteristics (sepal length, petal width, etc.).
+
+Random forests are a collection of randomized decision trees that overcome the disadvantages of using just one decision tree. The final prediction given by random forests is the average of the predictions from each individual decision tree.  Random forests prevent overfitting and improve prediction power.
+
+
+##Decision Trees
+
+First, we will want to load in our Forest Cover dataset using the code chunk below. This dataset looks at four areas within the Roosevelt National Forest in Colorado and uses information such as shadow coverage, soil type, elevation, tree type, and local typography.
+```{r}
+library(curl)
+f<-"https://raw.githubusercontent.com/CelesteW/Shaw-Pratik-Williams-Celeste-Group-Presentation/master/forest.cover.csv" 
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+```
+Before doing a decision tree or random forest analysis, you need to check the structure of your dataset and variables. 
+
+```{r}
+str(d)
+```
+We will need to turn the variable being classified into a factor variable
+```{r}
+d$Cover_Type<- as.factor(d$Cover_Type)
+```
+We will need to create a training and test dataset. 80% of our dataset will be included in the training data, and 20% in the test data. The training data is  used to build the tree model, and the test data is used to assess how well the training data predicted the outcome. 
+```{r}
+set.seed(89)
+z<- sample(2, nrow(d), replace = TRUE, prob = c(0.8,0.2))
+traindata<- d[z==1,]
+testdata<- d[z==2,]
+dim(traindata)
+dim(testdata)
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+tree<- rpart(Cover_Type ~ ., data = traindata, method = "class", cp=0)
+tree
+rpart.plot(tree)
+```
+This is our full grown tree. It is very complex and there is a lot of extra noise and details that may not be neccessary and developing an accurate model. One way to combat this is to "prune" the tree in order to find the optimal tree size in a way in which we minimize node impurities. Producing a Complexity Parameter Table (CP Table) will allow us to determine which tree best minimizes our Misclassification Error.
+```{r}
+printcp(tree)
+```
+
+```{r}
+cp <- tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"]
+cp
+```
+
+```{r}
+tree.pruned<-prune(tree, cp=cp)
+rpart.plot(tree.pruned)
+```
+Predict on Test Data
+```{r} 
+test.tree<- predict(tree.pruned, testdata, type = "class")
+table(testdata$Cover_Type, test.tree)
+```
+We could then calculate our classification error rate to determine how well of a model out training data produced.
+```{r}
+error<- (1+2+2+13)/ 104
+error
+```
+Advantages of decision trees: (1) simple and easy to fit; (2) the visualization of the tree gives simple, comprehendable insights into the importance of variables; (3) handles missing values well; (4) handles both numerical and categorical data; (5) little preparation of data needed. Disadvantages to using a decision tree include overfitting like we saw earlier, and the instability of the model itself (i.e. if the data changes just a little). One way to combat the disadvantages of decision trees is to use random forests. 
+
+
+##Random Forests
+
+
+```{r}
+set.seed(89)
+z<- sample(2, nrow(d), replace = TRUE, prob = c(0.8,0.2))
+traindata<- d[z==1,]
+testdata<- d[z==2,]
+```
+```{r}
+library(randomForest)
+```
+```{r}
+rf<- randomForest( Cover_Type ~ ., data = traindata, proximity=TRUE)
+```
+```{r}
+print(rf)
+```
+This tells us important information: the type of analysis run (classification or regression), number of trees used to make model, confusion matrix, and the out-of-bag (OOB) error rate. Arguably the two most important are the OOB error rate and the confusion matrix. 
+
+```{r}
+importance(rf)
+```
+```{r}
+varImpPlot(rf)
+```
+On Test Data
+```{r}
+rfpredict<- predict(rf, newdata = testdata)
+table(rfpredict, testdata$Cover_Type)
+```
+```{r}
+error<- (1+1+9+4)/ 104
+error
+```
+
+
